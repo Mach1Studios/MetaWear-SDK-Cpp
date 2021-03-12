@@ -22,18 +22,10 @@ else
     $(error Invalid value for "CONFIGURATION", must be 'release' or 'debug')
 endif
 
-LD_FLAGS+=-shared -Wl,
-ifneq ($(KERNEL),Darwin)
-    EXTENSION:=so
-    LIB_SO_NAME:=lib$(APP_NAME).so
-    LD_FLAGS:=$(LD_FLAGS)--soname
-else
-    EXTENSION:=dylib
-    LD_FLAGS:=-dynamiclib $(LD_FLAGS)-install_name
-endif
-LIB_SO_NAME:=lib$(APP_NAME).$(EXTENSION)
-LIB_SHORT_NAME:=$(LIB_SO_NAME).$(VERSION_MAJOR)
-LIB_NAME:=$(LIB_SO_NAME).$(VERSION)
+EXTENSION:=a
+LD_FLAGS+=-Wl,-install_name
+#LD_FLAGS:=$(LD_FLAGS)-install_name
+LIB_NAME:=lib$(APP_NAME).$(EXTENSION)
 
 #ifeq ($(MACHINE),x86)
 #	ARCH=-m32
@@ -78,11 +70,9 @@ $(REAL_DIST_DIR):
 
 $(OBJS): | $(MODULES_BUILD_DIR)
 $(APP_OUTPUT): $(OBJS) | $(REAL_DIST_DIR)
-	$(CXX) -o $@ $(LD_FLAGS) $^
-	ln -sf $(LIB_NAME) $(REAL_DIST_DIR)/$(LIB_SHORT_NAME)
-	ln -sf $(LIB_SHORT_NAME) $(REAL_DIST_DIR)/$(LIB_SO_NAME)
+	libtool -o $@ –static –disable-shared –enable-static $(LD_FLAGS) $^
 
-PUBLISH_NAME:=$(APP_NAME)-$(VERSION).tar
+PUBLISH_NAME:=$(LIB_NAME).tar
 PUBLISH_NAME_ZIP:=$(PUBLISH_NAME).gz
 
 publish: $(DIST_DIR)/$(PUBLISH_NAME_ZIP)
@@ -104,7 +94,7 @@ doc:
 	doxygen Doxyfile
 
 install: $(APP_OUTPUT)
-	install $(APP_OUTPUT) /usr/local/lib/$(LIB_SO_NAME)
+	install $(APP_OUTPUT) /usr/local/lib/$(LIB_NAME)
 
 export PYTHONPATH=$(BINDINGS_DIR)/python/
 export METAWEAR_LIB_SO_NAME=$(APP_OUTPUT)
